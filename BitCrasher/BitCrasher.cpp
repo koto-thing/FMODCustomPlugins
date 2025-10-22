@@ -5,9 +5,9 @@
  */
 
 # include <algorithm>
-# include <cstdio>
-# include <cstring>
+# include <new>
 
+# include "FaustBitCrasher.h"
 # include "../ThirdParty/inc/fmod_common.h"
 # include "../ThirdParty/inc/fmod_dsp.h"
 
@@ -22,33 +22,38 @@ FMOD_RESULT F_CALL BitCrasher_GetParameterFloat(FMOD_DSP_STATE* dsp_state, int i
  * @brief BitCrasher DSPプラグインの内部データ
  */
 struct BitCrasherState {
-    float volume;
+    mydsp* faustDspL;
+    mydsp* faustDspR;
 };
 
 /**
  * @brief BitCrasher DSPプラグインのパラメータインデックス
  */
 enum {
-    BITCRASHER_PARAM_VOLUME = 0,
+    BITCRASHER_PARAM_BITS = 0,
+    BITCRASHER_PARAM_DOWNSAMPLING,
     NUM_PARAMETERS,
 };
 
 // パラメータ説明の定義
-static FMOD_DSP_PARAMETER_DESC s_Volume;
+static FMOD_DSP_PARAMETER_DESC s_Bits;
+static FMOD_DSP_PARAMETER_DESC s_Downsampling;
 static FMOD_DSP_PARAMETER_DESC* s_Params[NUM_PARAMETERS];
 
 /**
  * @brief BitCrasher DSPプラグインのパラメータ説明の初期化
  */
 static void InitParameterDescs() {
-    FMOD_DSP_INIT_PARAMDESC_FLOAT(s_Volume, "Volume", "x", "Linear gain of the BitCrasher effect", 0.0f, 2.0f, 1.0f);
-    s_Params[BITCRASHER_PARAM_VOLUME] = &s_Volume;
+    FMOD_DSP_INIT_PARAMDESC_FLOAT(s_Bits, "Bits", "", "BitDepth", 1.0f, 16.0f, 8.0f); // ビット深度の範囲を0から16に設定
+    FMOD_DSP_INIT_PARAMDESC_FLOAT(s_Downsampling, "Downsampling", "x", "Downsampling Factor", 1.0f, 32.0f, 4.0f); // ダウンサンプリングの範囲を1から16に設定
+    s_Params[BITCRASHER_PARAM_BITS] = &s_Bits;
+    s_Params[BITCRASHER_PARAM_DOWNSAMPLING] = &s_Downsampling;
 }
 
 /**
  * @brief BitCrasher DSPプラグインの説明構造体
  */
-FMOD_DSP_DESCRIPTION bitCrasherDesc = {
+FMOD_DSP_DESCRIPTION templateDesc = {
     FMOD_PLUGIN_SDK_VERSION,      // プラグインSDKのバージョン
     "BitCrasher",                 // プラグインの名前
     0x00010000,                   // プラグインのバージョン
@@ -96,17 +101,51 @@ FMOD_RESULT F_CALL BitCrasher_Create(FMOD_DSP_STATE *dsp_state) {
         return FMOD_ERR_INTERNAL;
     }
 
+    // 開放用コールバック
+    FMOD_MEMORY_FREE_CALLBACK free_callback = dsp_state->functions->free;
+    if (!free_callback) {
+        return FMOD_ERR_INTERNAL;
+    }
+
     // メモリを確保
-    auto *state = (BitCrasherState*)alloc_callback(sizeof(BitCrasherState), FMOD_MEMORY_NORMAL, __FILE__);
+    auto *state = static_cast<BitCrasherState*>(alloc_callback(sizeof(BitCrasherState), FMOD_MEMORY_NORMAL, __FILE__));
     if (state == nullptr) {
         return FMOD_ERR_MEMORY;
     }
 
     // dsp_stateにポインタを渡す
     dsp_state->plugindata = state;
+    state->faustDspL = nullptr;
+    state->faustDspR = nullptr;
 
-    // デフォルトのビット深度を設定
-    state->volume = s_Volume.floatdesc.defaultval;
+    // サンプルレートを取得
+    int sampleRate = 48000;
+    if (dsp_state->functions->getsamplerate) {
+        dsp_state->functions->getsamplerate(dsp_state, &sampleRate);
+    }
+
+    // Lチャンネル用の DSP のメモリを確保して初期化
+    void* faust_mem_L = alloc_callback(sizeof(mydsp), FMOD_MEMORY_NORMAL, __FILE__);
+    if (faust_mem_L == nullptr) {
+        free_callback(state, FMOD_MEMORY_NORMAL, __FILE__);
+        return FMOD_ERR_MEMORY;
+    }
+
+    state->faustDspL = new(faust_mem_L) mydsp();
+    state->faustDspL->init(sampleRate);
+
+    // Rチャンネル用の DSP のメモリを確保して初期化
+    void* faust_mem_R = alloc_callback(sizeof(mydsp), FMOD_MEMORY_NORMAL, __FILE__);
+    if (faust_mem_R == nullptr) {
+        state->faustDspL->~mydsp();
+        free_callback(faust_mem_L, FMOD_MEMORY_NORMAL, __FILE__);
+        free_callback(state, FMOD_MEMORY_NORMAL, __FILE__);
+
+        return FMOD_ERR_MEMORY;
+    }
+
+    state->faustDspR = new(faust_mem_R) mydsp();
+    state->faustDspR->init(sampleRate);
 
     // 正常終了を返す
     return FMOD_OK;
@@ -125,12 +164,23 @@ FMOD_RESULT F_CALL BitCrasher_Release(FMOD_DSP_STATE *dsp_state) {
     // BitCrasherStateのインスタンスを取得
     FMOD_MEMORY_FREE_CALLBACK free_callback = dsp_state->functions->free;
     if (!free_callback) {
-        return FMOD_ERR_INTERNAL;
+        return FMOD_ERR_MEMORY;
     }
 
     // BitCrasherStateのインスタンスを取得
     auto *state = static_cast<BitCrasherState *>(dsp_state->plugindata);
     if (state) {
+        // Lチャンネル用DSPの解放
+        if (state->faustDspL) {
+            state->faustDspL->~mydsp();
+            free_callback(state->faustDspL, FMOD_MEMORY_NORMAL, __FILE__);
+        }
+        // Rチャンネル用DSPの解放
+        if (state->faustDspR) {
+            state->faustDspR->~mydsp();
+            free_callback(state->faustDspR, FMOD_MEMORY_NORMAL, __FILE__);
+        }
+
         free_callback(state, FMOD_MEMORY_NORMAL, __FILE__);
     }
 
@@ -152,29 +202,29 @@ FMOD_RESULT F_CALL BitCrasher_Release(FMOD_DSP_STATE *dsp_state) {
  * @return 処理が成功した場合はFMOD_OKを返す、それ以外はエラーコードを返す
  */
 FMOD_RESULT F_CALL BitCrasher_Process(FMOD_DSP_STATE* dsp_state, unsigned int length, const FMOD_DSP_BUFFER_ARRAY* inBuffers, FMOD_DSP_BUFFER_ARRAY* outBuffers, FMOD_BOOL inputsIdle, FMOD_DSP_PROCESS_OPERATION op) {
-    // 内部データを取得
-    auto *state = static_cast<BitCrasherState *>(dsp_state->plugindata);
-    if (!state || !inBuffers || !outBuffers) {
-        return FMOD_ERR_INVALID_PARAM;
-    }
-
-    if (outBuffers->numbuffers == 0 || outBuffers->buffers == nullptr) {
-        return FMOD_OK;
-    }
-
-    if (inBuffers->numbuffers == 0 || inBuffers->buffers == nullptr) {
-        for (int i = 0 ; i < outBuffers->numbuffers ; ++i) {
-            const int chs = outBuffers->buffernumchannels[i];
-            float *out = outBuffers->buffers[i];
-            for (unsigned int k = 0 ; k < length * static_cast<unsigned int>(chs); ++k) {
-                out[k] = 0.0f;
+    // FMOD_DSP_PROCESS_QUERYの場合、入出力フォーマットのミラーを行う
+    if (op == FMOD_DSP_PROCESS_QUERY) {
+        if (inBuffers && outBuffers) {
+            const int nb = std::min(inBuffers->numbuffers, outBuffers->numbuffers);
+            for (int i = 0; i < nb; ++i) {
+                outBuffers->buffernumchannels[i] = inBuffers->buffernumchannels[i];
+                outBuffers->bufferchannelmask[i] = inBuffers->bufferchannelmask[i];
             }
+            outBuffers->speakermode = inBuffers ? inBuffers->speakermode : outBuffers->speakermode;
         }
         return FMOD_OK;
     }
 
+    // 内部データを取得
+    auto *state = static_cast<BitCrasherState *>(dsp_state->plugindata);
+    if (!state || !state->faustDspL || !state->faustDspR || !inBuffers || !outBuffers ||
+        outBuffers->numbuffers == 0 || outBuffers->buffers == nullptr ||
+        inBuffers->numbuffers == 0 || inBuffers->buffers == nullptr) {
+        return FMOD_ERR_DSP_DONTPROCESS;
+    }
+
     // 入力がアイドル状態の場合、出力バッファをゼロで埋める
-    if (inputsIdle) {
+    if (inputsIdle || !inBuffers || inBuffers->numbuffers == 0 || !inBuffers->buffers) {
         for (int i = 0 ; i < outBuffers->numbuffers ; ++i) {
             const int chs = outBuffers->buffernumchannels[i];
             float *out = outBuffers->buffers[i];
@@ -182,31 +232,37 @@ FMOD_RESULT F_CALL BitCrasher_Process(FMOD_DSP_STATE* dsp_state, unsigned int le
                 out[k] = 0.0f;
             }
         }
-        return FMOD_OK;
+
+        return FMOD_ERR_DSP_SILENCE;
     }
 
-    const float gain = state->volume;
+    // FMODがDSP_PROCESS_PERFORMの場合、エフェクト処理を行う
+    const int nb = std::min(outBuffers->numbuffers, outBuffers->numbuffers);
+    for (int b = 0 ; b < nb ; ++b) {
+        const int chs = std::min(inBuffers->buffernumchannels[b], outBuffers->buffernumchannels[b]);
+        float* in = inBuffers->buffers[b];
+        float* out = outBuffers->buffers[b];
 
-    // FMOD_DSP_PROCESS_PERFORMの場合、エフェクト処理を行う
-    if (op == FMOD_DSP_PROCESS_PERFORM) {
-        const int nb = std::min(inBuffers->numbuffers, outBuffers->numbuffers);
-        for (int i = 0 ; i < nb ; ++i) {
-            const int chs = std::min(inBuffers->buffernumchannels[i], outBuffers->buffernumchannels[i]);
-            const float *in = inBuffers->buffers[i]; // ★ここでセグフォ
-            float *out = outBuffers->buffers[i];
-            for (unsigned int j = 0 ; j < length * static_cast<unsigned int>(chs); ++j) {
-                out[j] = in[j] * gain;
+        for (unsigned int i = 0 ; i < length ; ++i) {
+            for (int ch = 0 ; ch < chs ; ++ch) {
+                const int index = static_cast<int>(i) * chs + ch;
+                float inSample = in[index];
+                float outSample = 0.0f;
+
+                FAUSTFLOAT* fin[1] = { reinterpret_cast<FAUSTFLOAT*>(&inSample) };
+                FAUSTFLOAT* fout[1] = { reinterpret_cast<FAUSTFLOAT*>(&outSample) };
+                if (ch == 0 && state->faustDspL) {
+                    state->faustDspL->compute(1, fin, fout);
+                }
+                else if (ch == 1 && state->faustDspR) {
+                    state->faustDspR->compute(1, fin, fout);
+                }
+                else if (state->faustDspL) {
+                    state->faustDspL->compute(1, fin, fout);
+                }
+
+                out[index] = outSample;
             }
-        }
-    }
-    // FMOD_DSP_PROCESS_QUERYの場合、単純にバッファをコピーする
-    else {
-        const int nb = std::min(inBuffers->numbuffers, outBuffers->numbuffers);
-        for (int i = 0 ; i < nb ; ++i) {
-            const int chs = std::min(inBuffers->buffernumchannels[i], outBuffers->buffernumchannels[i]);
-            const float *in = inBuffers->buffers[i];
-            float *out = outBuffers->buffers[i];
-            std::memcpy(out, in, sizeof(float) * length * static_cast<unsigned int>(chs));
         }
     }
 
@@ -222,15 +278,19 @@ FMOD_RESULT F_CALL BitCrasher_Process(FMOD_DSP_STATE* dsp_state, unsigned int le
  */
 FMOD_RESULT F_CALL BitCrasher_SetParameterFloat(FMOD_DSP_STATE* dsp_state, int index, float value) {
     auto* state = static_cast<BitCrasherState*>(dsp_state->plugindata);
-    if (!state) {
+    if (!state || !state->faustDspL || !state->faustDspR) {
         return FMOD_ERR_INVALID_PARAM;
     }
 
     switch (index) {
-        case BITCRASHER_PARAM_VOLUME:
-            if (value < 0.0f) value = 0.0f;
-            if (value > 2.0f) value = 2.0f;
-            state->volume = value;
+        case BITCRASHER_PARAM_BITS:
+            state->faustDspL->fHslider1 = static_cast<FAUSTFLOAT>(value);
+            state->faustDspR->fHslider1 = static_cast<FAUSTFLOAT>(value);
+            break;
+
+        case BITCRASHER_PARAM_DOWNSAMPLING:
+            state->faustDspL->fHslider0 = static_cast<FAUSTFLOAT>(value);
+            state->faustDspR->fHslider0 = static_cast<FAUSTFLOAT>(value);
             break;
 
         default:
@@ -249,14 +309,17 @@ FMOD_RESULT F_CALL BitCrasher_SetParameterFloat(FMOD_DSP_STATE* dsp_state, int i
  */
 FMOD_RESULT F_CALL BitCrasher_GetParameterFloat(FMOD_DSP_STATE* dsp_state, int index, float* value, char* valuestr) {
     auto* state = static_cast<BitCrasherState*>(dsp_state->plugindata);
-    if (!state) return FMOD_ERR_INVALID_PARAM;
+    if (!state || !state->faustDspL) return FMOD_ERR_INVALID_PARAM;
 
     switch (index) {
-        case BITCRASHER_PARAM_VOLUME:
-            if (value) *value = state->volume;
-            if (valuestr) {
-                snprintf(valuestr, 32, "%.2f x", state->volume);
-            }
+        case BITCRASHER_PARAM_BITS:
+            if (value) *value = static_cast<float>(state->faustDspL->fHslider1);
+            if (valuestr) snprintf(valuestr, 32, "%.0f bits", state->faustDspL->fHslider1);
+            break;
+
+        case BITCRASHER_PARAM_DOWNSAMPLING:
+            if (value) *value = static_cast<float>(state->faustDspL->fHslider0);
+            if (valuestr) snprintf(valuestr, 32, "%.0f x", state->faustDspL->fHslider0);
             break;
 
         default:
@@ -282,6 +345,6 @@ FMOD_RESULT F_CALL BitCrasher_GetParameterFloat(FMOD_DSP_STATE* dsp_state, int i
 extern "C" {
     FMOD_EXPORT FMOD_DSP_DESCRIPTION* FMODGetDSPDescription() {
         InitParameterDescs();
-        return &bitCrasherDesc;
+        return &templateDesc;
     }
 }
