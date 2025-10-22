@@ -1,0 +1,7 @@
+# Ignore FMOD SDK
+/ThirdParty/inc/
+/ThirdParty/lib/
+
+# Ignore Build Files and Clion Settings
+/cmake-build-*/
+/.idea/
