@@ -20,6 +20,9 @@ Big thanks to:
 * FFTConvolver: https://github.com/HiFi-LoFi/FFTConvolver
 * FMOD Studio: Firelight Technologies Pty Ltd.
 
+## Credit
+* <a href="https://github.com/koto-thing/FMODCustomPlugins/tree/main/BuildPlugins">Genetic Reverb for FMOD</a> by <a href="https://koto-thing.github.io/MyWebsite/">Goto Kenta</a> is marked <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0 1.0 Universal</a><img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;"><img src="https://mirrors.creativecommons.org/presskit/icons/zero.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;">
+
 ---
 
 # 遺伝的アルゴリズムを用いたFMODリバーブプラグイン version 1.0
@@ -43,3 +46,6 @@ Big thanks to:
 * Ly E, Villegas J. Generating Artificial Reverberation via Genetic Algorithms for Real-Time Applications. Entropy (Basel). 2020 Nov 17;22(11):1309. doi: 10.3390/e22111309. PMID: 33287074; PMCID: PMC7712793.
 * FFTConvolver: https://github.com/HiFi-LoFi/FFTConvolver
 * FMOD Studio: Firelight Technologies Pty Ltd.
+
+## クレジット
+* <a href="https://github.com/koto-thing/FMODCustomPlugins/tree/main/BuildPlugins">Genetic Reverb for FMOD</a> by <a href="https://koto-thing.github.io/MyWebsite/">Goto Kenta</a> is marked <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0 1.0 Universal</a><img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;"><img src="https://mirrors.creativecommons.org/presskit/icons/zero.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;">
