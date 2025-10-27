@@ -2,6 +2,9 @@
 /ThirdParty/inc/
 /ThirdParty/lib/
 
+# Ignore FFTConvolver Library
+/ThirdParty/FFTConvolver/
+
 # Ignore Build Files and Clion Settings
 /cmake-build-*/
 /.idea/
