@@ -1,9 +1,8 @@
 # FMOD Pluginの作り方
 
 ## 前準備
-* FMOD SDKのincludeフォルダとlibフォルダを用意してください.
-* Faust SDKのincludeフォルダとlibフォルダを用意してください.
-* それらをリンクしてください。
+* FMOD Core APIとFMOD Studio API必須
+* Faust API（Faustを使用する場合）
 
 ## はじめに
 

@@ -12,7 +12,7 @@
 # include "../ThirdParty/inc/fmod_dsp.h"
 
 /* コールバック関数 */
-FMOD_RESULT F_CALL BitCrasher_Create(FMOD_DSP_STATE* dsp_state);
+FMOD_RESULT F_CALL GeneticReverb_Create(FMOD_DSP_STATE* dsp_state);
 FMOD_RESULT F_CALL BitCrasher_Release(FMOD_DSP_STATE* dsp_state);
 FMOD_RESULT F_CALL BitCrasher_Process(FMOD_DSP_STATE* dsp_state, unsigned int length, const FMOD_DSP_BUFFER_ARRAY* inBuffers, FMOD_DSP_BUFFER_ARRAY* outBuffers, FMOD_BOOL inputsIdle, FMOD_DSP_PROCESS_OPERATION op);
 FMOD_RESULT F_CALL BitCrasher_SetParameterFloat(FMOD_DSP_STATE* dsp_state, int index, float value);
@@ -59,7 +59,7 @@ FMOD_DSP_DESCRIPTION templateDesc = {
     0x00010000,                   // プラグインのバージョン
     1,                            // 入力バッファの数
     1,                            // 出力バッファの数
-    BitCrasher_Create,            // DSP生成時のコールバック
+    GeneticReverb_Create,            // DSP生成時のコールバック
     BitCrasher_Release,           // DSP解放時のコールバック
     nullptr,                      // DSPリセット時のコールバック
     nullptr,                      // DSP読み取り時のコールバック
@@ -87,7 +87,7 @@ FMOD_DSP_DESCRIPTION templateDesc = {
  * @param dsp_state
  * @return
  */
-FMOD_RESULT F_CALL BitCrasher_Create(FMOD_DSP_STATE *dsp_state) {
+FMOD_RESULT F_CALL GeneticReverb_Create(FMOD_DSP_STATE *dsp_state) {
     InitParameterDescs();
 
     // dsp_stateのfunctionsが有効か確認

@@ -1,6 +1,6 @@
-﻿cmake_minimum_required(VERSION 3.10)
+﻿cmake_minimum_required(VERSION 3.15)
 
-project(BitCrasher)
+project(FMODDSPPlugins)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -52,11 +52,22 @@ else()
     message(WARNING "FAUST library not found in fallback path. You may need to adjust paths.")
 endif()
 
-
 # ソースファイルの設定
 set(SOURCE_FILES
-        BitCrasher/BitCrasher.cpp
-        BitCrasher/FaustBitCrasher.h
+        GeneticReverb/AnalysisHelpers.h
+        GeneticReverb/GeneticAlgorithm.h
+        GeneticReverb/GeneticAlgorithm.cpp
+        ThirdParty/FFTConvolver/Utilities.h
+        ThirdParty/FFTConvolver/Utilities.cpp
+        ThirdParty/FFTConvolver/TwoStageFFTConvolver.h
+        ThirdParty/FFTConvolver/TwoStageFFTConvolver.cpp
+        ThirdParty/FFTConvolver/FFTConvolver.h
+        ThirdParty/FFTConvolver/FFTConvolver.cpp
+        ThirdParty/FFTConvolver/AudioFFT.h
+        ThirdParty/FFTConvolver/AudioFFT.cpp
+        GeneticReverb/GeneticReverb.cpp
+        GeneticReverb/ConvolutionProcessor.h
+        GeneticReverb/ConvolutionProcessor.cpp
 )
 
 # ライブラリの作成
