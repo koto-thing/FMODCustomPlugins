@@ -1,4 +1,4 @@
-﻿# Genetic Algorithm Reverb Plugin Version 1.0
+﻿# Genetic Algorithm FMOD Reverb Plugin Version 1.0
 
 ## Overview
 This is an audio effect plugin that uses a genetic algorithm to optimize reverb effects.
@@ -19,6 +19,8 @@ Big thanks to:
 * Ly E, Villegas J. Generating Artificial Reverberation via Genetic Algorithms for Real-Time Applications. Entropy (Basel). 2020 Nov 17;22(11):1309. doi: 10.3390/e22111309. PMID: 33287074; PMCID: PMC7712793.
 * FFTConvolver: https://github.com/HiFi-LoFi/FFTConvolver
 * FMOD Studio: Firelight Technologies Pty Ltd.
+
+---
 
 # 遺伝的アルゴリズムを用いたFMODリバーブプラグイン version 1.0
 
