@@ -41,7 +41,8 @@ inline std::vector<float> calculateSchroederDecay(const std::vector<float>& ir) 
     // dBスケールに変換
     std::vector<float> edc_dB(n);
     for (size_t i = 0 ; i < n ; ++i) {
-        edc_dB[i] = 10.0f * std::log10(std::max(edc[i], minEnergy) / totalEnergy);
+        const double ratio = std::max(edc[i] / std::max(totalEnergy, minEnergy), minEnergy);
+        edc_dB[i] = static_cast<float>(10.0 * std::log10(ratio)); // 明示キャストで C4244 回避
     }
 
     return edc_dB;
@@ -69,7 +70,7 @@ inline float calculateT60(const std::vector<float>& edc_dB, float sampleRate) {
     int t_minus35_samples = findTimeForDB(-35.0f);
 
     // T30のサンプル数
-    auto t30_samples = static_cast<float>(t_minus5_samples - t_minus35_samples);
+    auto t30_samples = static_cast<float>(t_minus35_samples - t_minus5_samples);
     if (t30_samples <= 0.0f) {
         return 0.0f;
     }
@@ -139,5 +140,7 @@ inline float calculateC80(const std::vector<float>& ir, float sampleRate) {
     }
 
     // C80を計算
-    return 10.0f * std::log10(std::max(earlyEnergy, minEnergy) / std::max(lateEnergy, minEnergy));
+    return static_cast<float>(
+        10.0 * std::log10(std::max(earlyEnergy, minEnergy) / std::max(lateEnergy, minEnergy))
+    );
 }

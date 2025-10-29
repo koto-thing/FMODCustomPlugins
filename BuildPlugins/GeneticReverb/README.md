@@ -1,4 +1,4 @@
-﻿# Genetic Algorithm FMOD Reverb Plugin Version 1.0
+﻿# Genetic Algorithm FMOD Reverb Plugin
 
 ## Overview
 This is an audio effect plugin that uses a genetic algorithm to optimize reverb effects.

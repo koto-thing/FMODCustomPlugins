@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file GeneticAlgorithm.h
  * @author Goto Kenta
  * @brief 遺伝的アルゴリズムのヘッダーファイル
@@ -6,6 +6,7 @@
 
 # pragma once
 
+# include <functional>
 # include <random>
 # include <vector>
 
@@ -35,6 +36,11 @@ public:
 
     std::vector<float> compute(const ReverbTargetParams& targetParams, int numGenerations);
 
+    // 進捗コールバック関数の設定
+    void setProgressCallback(std::function<void(int curGen, int totalGen, double bestFitness)> callback);
+    void cancel();
+    void resetCancel();
+
 private:
     std::vector<Individual> m_population; // 個体群
     int m_popSize;                        // 個体群のサイズ
@@ -45,6 +51,10 @@ private:
     std::mt19937 m_rng;
     std::uniform_real_distribution<float> m_distNeg1to1{-1.0f, 1.0f};
     std::uniform_real_distribution<float> m_dist0To1{0.0f, 1.0f};
+
+    // 進捗コールバック関数
+    std::function<void(int, int, double)> m_onProgress;
+    std::atomic<bool> m_cancel { false };
 
     // GAのロジックを実行する関数
     void initializePopulation(float targetT60);

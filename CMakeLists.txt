@@ -1,14 +1,11 @@
 ﻿cmake_minimum_required(VERSION 3.15)
 
-project(FMODDSPPlugins)
+project(GeneticReverb)
 
 set(CMAKE_CXX_STANDARD 17)
 
 # ---FMOD SDKのパス設定---
-# サードパーティライブラリのパス設定
 set(FMOD_THIRD_PARTY "${CMAKE_SOURCE_DIR}/ThirdParty")
-
-# フォールバックのFMOD SDKパス設定
 set(FMOD_SDK_FALLBACK "C:/Program Files/FMOD SoundSystem/FMOD Studio API Windows")
 
 # インクルードディレクトリを設定
@@ -19,7 +16,6 @@ else()
 endif()
 
 # ---FAUST SDKのパス設定---
-# FAUSTのインクルードディレクトリ設定
 set(FAUST_SDK_FALLBACK "C:/Program Files/Faust")
 set(FAUST_INCLUDE_DIRS "${FAUST_SDK_FALLBACK}/include")
 
@@ -78,10 +74,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${FMOD_INCLUDE_DIR})
 target_include_directories(${PROJECT_NAME} PRIVATE ${FAUST_INCLUDE_DIRS})
 
 if(FMOD_LIB_PATH)
-    # ライブラリのリンク
     target_link_libraries(${PROJECT_NAME} PRIVATE "${FMOD_LIB_PATH}")
 endif()
-
 if(FAUST_LIB_PATH)
     target_link_libraries(${PROJECT_NAME} PRIVATE "${FAUST_LIB_PATH}")
 endif()
