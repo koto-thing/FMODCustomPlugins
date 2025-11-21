@@ -8,3 +8,9 @@
 # Ignore Build Files and Clion Settings
 /cmake-build-*/
 /.idea/
+
+# For PSOReverb
+/PSOReverb/IRGenerator/target
+**/*.rs.bk
+/PSOReverb/IRGenerator/impulse_responses.wav
+*.wav
